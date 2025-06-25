@@ -45,14 +45,14 @@ trackmybugs/
 
 ### Phase 1 - Setup ✅
 - [x] Project structure
-- [ ] Docker Compose configuration
-- [ ] Basic README
+- [x] Docker Compose configuration
+- [x] Basic README
 
 ### Phase 2 - Database & Backend
-- [ ] Database schema design
-- [ ] Go API setup with Gin
-- [ ] Basic CRUD operations
-- [ ] JWT authentication
+- [x] Database schema design
+- [x] Go API setup with Gin
+- [x] Basic CRUD operations
+- [x] JWT authentication
 - [ ] Role-based permissions
 
 ### Phase 3 - Frontend
