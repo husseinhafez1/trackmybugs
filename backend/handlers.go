@@ -128,13 +128,14 @@ func generateJWT(userID string) (string, error) {
 
 func getProjectsHandler(c *gin.Context) {
 	userID := c.GetString("user_id")
-
 	projects, err := getProjectsByUser(userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch projects"})
 		return
 	}
-
+	if projects == nil {
+		projects = []Project{}
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"projects": projects,
 		"message":  "Projects fetched successfully",
@@ -271,49 +272,181 @@ func deleteProject(projectID string) error {
 
 // Issues handlers
 func getIssuesHandler(c *gin.Context) {
-	c.JSON(200, gin.H{"message": "Get issues - not implemented yet"})
+	userID := c.GetString("user_id")
+	issues, err := getIssuesByUser(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch issues"})
+		return
+	}
+	if issues == nil {
+		issues = []Issue{}
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"issues":  issues,
+		"message": "Issues fetched successfully",
+	})
+}
+
+func getIssuesByUser(userID string) ([]Issue, error) {
+	query := `
+	SELECT id, title, description, project_id, created_by, created_at, updated_at
+	FROM issues
+	WHERE created_by = $1
+	ORDER BY created_at DESC
+	`
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var issues []Issue
+	for rows.Next() {
+		var issue Issue
+		err := rows.Scan(&issue.ID, &issue.Title, &issue.Description, &issue.ProjectID, &issue.CreatedBy, &issue.CreatedAt, &issue.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		issues = append(issues, issue)
+	}
+	return issues, nil
 }
 
 func createIssueHandler(c *gin.Context) {
-	c.JSON(200, gin.H{"message": "Create issue - not implemented yet"})
+	log.Println("createIssueHandler called")
+	var issue Issue
+	if err := c.ShouldBindJSON(&issue); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	issue.ID = uuid.New().String()
+	issue.CreatedBy = c.GetString("user_id")
+	issue.CreatedAt = time.Now().Format(time.RFC3339)
+	issue.UpdatedAt = issue.CreatedAt
+
+	if err := createIssue(issue); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create issue"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Issue created successfully"})
+}
+
+func createIssue(issue Issue) error {
+	query := `
+	INSERT INTO issues (id, title, description, project_id, created_by, created_at, updated_at)
+	VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`
+	_, err := db.Exec(query, issue.ID, issue.Title, issue.Description, issue.ProjectID, issue.CreatedBy, issue.CreatedAt, issue.UpdatedAt)
+	if err != nil {
+		log.Printf("Database error creating issue: %v", err)
+	}
+	return err
 }
 
 func getIssueHandler(c *gin.Context) {
-	c.JSON(200, gin.H{"message": "Get issue - not implemented yet"})
+	issueID := c.Param("id")
+	issue, err := getIssueByID(issueID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Issue not found"})
+		return
+	}
+	c.JSON(http.StatusOK, issue)
+}
+
+func getIssueByID(issueID string) (Issue, error) {
+	var issue Issue
+	query := `
+	SELECT id, title, description, created_by, created_at, updated_at
+	FROM issues
+	WHERE id = $1
+	`
+	err := db.QueryRow(query, issueID).Scan(&issue.ID, &issue.Title, &issue.Description, &issue.CreatedBy, &issue.CreatedAt, &issue.UpdatedAt)
+	return issue, err
 }
 
 func updateIssueHandler(c *gin.Context) {
-	c.JSON(200, gin.H{"message": "Update issue - not implemented yet"})
+	issueID := c.Param("id")
+	issue, err := getIssueByID(issueID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Issue not found"})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&issue); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	issue.UpdatedAt = time.Now().Format(time.RFC3339)
+
+	if err := updateIssue(issue); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update issue"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Issue updated successfully"})
+}
+
+func updateIssue(issue Issue) error {
+	query := `
+	UPDATE issues
+	SET title = $1, description = $2, updated_at = $3
+	WHERE id = $4
+	`
+	_, err := db.Exec(query, issue.Title, issue.Description, issue.UpdatedAt, issue.ID)
+	return err
 }
 
 func deleteIssueHandler(c *gin.Context) {
-	c.JSON(200, gin.H{"message": "Delete issue - not implemented yet"})
+	issueID := c.Param("id")
+	if err := deleteIssue(issueID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete issue"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Issue deleted successfully"})
 }
 
-// Comments handlers
-func getCommentsHandler(c *gin.Context) {
-	c.JSON(200, gin.H{"message": "Get comments - not implemented yet"})
+func deleteIssue(issueID string) error {
+	query := `
+	DELETE FROM issues
+	WHERE id = $1
+	`
+	_, err := db.Exec(query, issueID)
+	return err
 }
 
 func createCommentHandler(c *gin.Context) {
-	c.JSON(200, gin.H{"message": "Create comment - not implemented yet"})
+	var comment Comment
+	if err := c.ShouldBindJSON(&comment); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	comment.ID = uuid.New().String()
+	comment.CreatedBy = c.GetString("user_id")
+	comment.CreatedAt = time.Now().Format(time.RFC3339)
+	comment.UpdatedAt = comment.CreatedAt
+
+	if err := createComment(comment); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create comment"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Comment created successfully"})
 }
 
-func updateCommentHandler(c *gin.Context) {
-	c.JSON(200, gin.H{"message": "Update comment - not implemented yet"})
-}
-
-func deleteCommentHandler(c *gin.Context) {
-	c.JSON(200, gin.H{"message": "Delete comment - not implemented yet"})
-}
-
-// Users handlers
-func getUsersHandler(c *gin.Context) {
-	c.JSON(200, gin.H{"message": "Get users - not implemented yet"})
-}
-
-func getProfileHandler(c *gin.Context) {
-	c.JSON(200, gin.H{"message": "Get profile - not implemented yet"})
+func createComment(comment Comment) error {
+	query := `
+	INSERT INTO comments (id, issue_id, content, created_by, created_at, updated_at)
+	VALUES ($1, $2, $3, $4, $5, $6)
+	`
+	_, err := db.Exec(query, comment.ID, comment.IssueID, comment.Content, comment.CreatedBy, comment.CreatedAt, comment.UpdatedAt)
+	if err != nil {
+		log.Printf("Database error creating comment: %v", err)
+	}
+	return err
 }
 
 func authMiddleware() gin.HandlerFunc {
@@ -328,9 +461,12 @@ func authMiddleware() gin.HandlerFunc {
 		// Remove "Bearer " prefix if present
 		if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
 			tokenString = tokenString[7:]
+		} else {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			c.Abort()
+			return
 		}
 
-		// Parse and validate JWT
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			return []byte(os.Getenv("JWT_SECRET")), nil
 		})
@@ -349,4 +485,60 @@ func authMiddleware() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func getCommentsHandler(c *gin.Context) {
+	issueID := c.Param("issueId")
+	comments, err := getCommentsByIssue(issueID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch comments"})
+		return
+	}
+	if comments == nil {
+		comments = []Comment{}
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"comments": comments,
+		"message":  "Comments fetched successfully",
+	})
+}
+
+func getCommentsByIssue(issueID string) ([]Comment, error) {
+	query := `
+	SELECT id, issue_id, created_by, content, created_at, updated_at
+	FROM comments
+	WHERE issue_id = $1
+	ORDER BY created_at ASC
+	`
+	rows, err := db.Query(query, issueID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var comments []Comment
+	for rows.Next() {
+		var comment Comment
+		err := rows.Scan(&comment.ID, &comment.IssueID, &comment.CreatedBy, &comment.Content, &comment.CreatedAt, &comment.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		comments = append(comments, comment)
+	}
+	return comments, nil
+}
+func updateCommentHandler(c *gin.Context) {
+	c.JSON(200, gin.H{"message": "Update comment - not implemented yet"})
+}
+
+func deleteCommentHandler(c *gin.Context) {
+	c.JSON(200, gin.H{"message": "Delete comment - not implemented yet"})
+}
+
+func getUsersHandler(c *gin.Context) {
+	c.JSON(200, gin.H{"message": "Get users - not implemented yet"})
+}
+
+func getProfileHandler(c *gin.Context) {
+	c.JSON(200, gin.H{"message": "Get profile - not implemented yet"})
 }

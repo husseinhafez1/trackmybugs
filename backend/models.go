@@ -36,7 +36,7 @@ type Issue struct {
 type Comment struct {
 	ID        string `json:"id"`
 	IssueID   string `json:"issue_id"`
-	UserID    string `json:"user_id"`
+	CreatedBy string `json:"created_by"`
 	Content   string `json:"content"`
 	CreatedAt string `json:"created_at"`
 	UpdatedAt string `json:"updated_at"`

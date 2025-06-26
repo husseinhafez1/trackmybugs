@@ -70,8 +70,8 @@ func main() {
 			// Issues
 			issues := protected.Group("/issues")
 			{
-				issues.GET("/", getIssuesHandler)
-				issues.POST("/", createIssueHandler)
+				issues.GET("", getIssuesHandler)
+				issues.POST("", createIssueHandler)
 				issues.GET("/:id", getIssueHandler)
 				issues.PUT("/:id", updateIssueHandler)
 				issues.DELETE("/:id", deleteIssueHandler)
@@ -81,7 +81,7 @@ func main() {
 			comments := protected.Group("/comments")
 			{
 				comments.GET("/issue/:issueId", getCommentsHandler)
-				comments.POST("/", createCommentHandler)
+				comments.POST("", createCommentHandler)
 				comments.PUT("/:id", updateCommentHandler)
 				comments.DELETE("/:id", deleteCommentHandler)
 			}
@@ -89,7 +89,7 @@ func main() {
 			// Users
 			users := protected.Group("/users")
 			{
-				users.GET("/", getUsersHandler)
+				users.GET("", getUsersHandler)
 				users.GET("/profile", getProfileHandler)
 			}
 		}
