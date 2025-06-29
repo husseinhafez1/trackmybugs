@@ -273,7 +273,17 @@ func deleteProject(projectID string) error {
 // Issues handlers
 func getIssuesHandler(c *gin.Context) {
 	userID := c.GetString("user_id")
-	issues, err := getIssuesByUser(userID)
+	projectID := c.Query("project_id")
+
+	var issues []Issue
+	var err error
+
+	if projectID != "" {
+		issues, err = getIssuesByProject(projectID)
+	} else {
+		issues, err = getIssuesByUser(userID)
+	}
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch issues"})
 		return
@@ -312,6 +322,31 @@ func getIssuesByUser(userID string) ([]Issue, error) {
 	return issues, nil
 }
 
+func getIssuesByProject(projectID string) ([]Issue, error) {
+	query := `
+	SELECT id, title, description, status, priority, project_id, created_by, assigned_to, created_at, updated_at
+	FROM issues
+	WHERE project_id = $1
+	ORDER BY created_at DESC
+	`
+	rows, err := db.Query(query, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var issues []Issue
+	for rows.Next() {
+		var issue Issue
+		err := rows.Scan(&issue.ID, &issue.Title, &issue.Description, &issue.Status, &issue.Priority, &issue.ProjectID, &issue.CreatedBy, &issue.AssignedTo, &issue.CreatedAt, &issue.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		issues = append(issues, issue)
+	}
+	return issues, nil
+}
+
 func createIssueHandler(c *gin.Context) {
 	log.Println("createIssueHandler called")
 	var issue Issue
@@ -334,11 +369,19 @@ func createIssueHandler(c *gin.Context) {
 }
 
 func createIssue(issue Issue) error {
+	// Set default values if not provided
+	if issue.Status == "" {
+		issue.Status = "open"
+	}
+	if issue.Priority == "" {
+		issue.Priority = "medium"
+	}
+
 	query := `
-	INSERT INTO issues (id, title, description, project_id, created_by, created_at, updated_at)
-	VALUES ($1, $2, $3, $4, $5, $6, $7)
+	INSERT INTO issues (id, title, description, status, priority, project_id, created_by, created_at, updated_at)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
-	_, err := db.Exec(query, issue.ID, issue.Title, issue.Description, issue.ProjectID, issue.CreatedBy, issue.CreatedAt, issue.UpdatedAt)
+	_, err := db.Exec(query, issue.ID, issue.Title, issue.Description, issue.Status, issue.Priority, issue.ProjectID, issue.CreatedBy, issue.CreatedAt, issue.UpdatedAt)
 	if err != nil {
 		log.Printf("Database error creating issue: %v", err)
 	}
@@ -358,11 +401,11 @@ func getIssueHandler(c *gin.Context) {
 func getIssueByID(issueID string) (Issue, error) {
 	var issue Issue
 	query := `
-	SELECT id, title, description, created_by, created_at, updated_at
+	SELECT id, title, description, status, priority, project_id, created_by, assigned_to, created_at, updated_at
 	FROM issues
 	WHERE id = $1
 	`
-	err := db.QueryRow(query, issueID).Scan(&issue.ID, &issue.Title, &issue.Description, &issue.CreatedBy, &issue.CreatedAt, &issue.UpdatedAt)
+	err := db.QueryRow(query, issueID).Scan(&issue.ID, &issue.Title, &issue.Description, &issue.Status, &issue.Priority, &issue.ProjectID, &issue.CreatedBy, &issue.AssignedTo, &issue.CreatedAt, &issue.UpdatedAt)
 	return issue, err
 }
 
@@ -392,10 +435,10 @@ func updateIssueHandler(c *gin.Context) {
 func updateIssue(issue Issue) error {
 	query := `
 	UPDATE issues
-	SET title = $1, description = $2, updated_at = $3
-	WHERE id = $4
+	SET title = $1, description = $2, status = $3, priority = $4, updated_at = $5
+	WHERE id = $6
 	`
-	_, err := db.Exec(query, issue.Title, issue.Description, issue.UpdatedAt, issue.ID)
+	_, err := db.Exec(query, issue.Title, issue.Description, issue.Status, issue.Priority, issue.UpdatedAt, issue.ID)
 	return err
 }
 
