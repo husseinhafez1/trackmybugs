@@ -1,11 +1,11 @@
 
-# 🐛 TrackMyBugs — Full-Stack Issue Tracker for Modern Teams
+# TrackMyBugs — Full-Stack Issue Tracker for Modern Teams
 
 **TrackMyBugs** is a production-grade, full-stack bug and issue tracking system built with **Go**, **Next.js**, **PostgreSQL**, and **Docker**. Designed for teams and individuals who value performance, security, and a clean, intuitive user experience.
 
 ---
 
-## 🚀 Why TrackMyBugs?
+## Why TrackMyBugs?
 
 ✅ **Robust Architecture** — Clean separation of concerns with dedicated backend, frontend, and database services.  
 ✅ **Scalable & Secure** — Go-powered REST API with JWT authentication, RBAC, and PostgreSQL at the core.  
@@ -14,7 +14,7 @@
 
 ---
 
-## 🏗️ Tech Stack
+## Tech Stack
 
 | Layer             | Technology                          |
 |-------------------|-------------------------------------|
@@ -25,7 +25,7 @@
 
 ---
 
-## ✨ Core Features
+## Core Features
 
 - **User Authentication:** Secure JWT-based sessions (login/register)  
 - **Role-Based Access Control:** Admin/user roles, admin-only management actions  
@@ -39,7 +39,7 @@
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -88,7 +88,7 @@ docker-compose up --build
 
 ----------
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 trackmybugs/
