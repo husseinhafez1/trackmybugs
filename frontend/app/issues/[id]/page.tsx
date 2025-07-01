@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { apiClient } from '../../../lib/api'
+import { useForm } from 'react-hook-form'
 
 interface Issue {
   id: string
@@ -13,6 +14,15 @@ interface Issue {
   priority: string
   project_id: string
   created_by: string
+  created_at: string
+  updated_at: string
+}
+
+interface Comment {
+  id: string
+  issue_id: string
+  created_by: string
+  content: string
   created_at: string
   updated_at: string
 }
@@ -29,10 +39,19 @@ export default function IssueDetailPage({ params }: { params: { id: string } }) 
     status: '',
     priority: ''
   })
+  const [comments, setComments] = useState<Comment[]>([])
+  const [commentsLoading, setCommentsLoading] = useState(true)
+  const [commentsError, setCommentsError] = useState('')
+  const [commentsLimit, setCommentsLimit] = useState(6)
+  const [commentsOffset, setCommentsOffset] = useState(0)
+  const [commentsTotal, setCommentsTotal] = useState(0)
+  const { register: registerComment, handleSubmit: handleSubmitComment, reset: resetCommentForm, formState: { errors: commentErrors } } = useForm<{ content: string }>()
+  const [commentSubmitting, setCommentSubmitting] = useState(false)
 
   useEffect(() => {
     fetchIssue()
-  }, [params.id])
+    fetchComments()
+  }, [params.id, commentsOffset, commentsLimit])
 
   const fetchIssue = async () => {
     try {
@@ -54,6 +73,24 @@ export default function IssueDetailPage({ params }: { params: { id: string } }) 
       setError('Failed to fetch issue')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchComments = async () => {
+    setCommentsLoading(true)
+    setCommentsError('')
+    try {
+      const response = await apiClient.getComments(params.id, commentsLimit, commentsOffset)
+      if (response.error) {
+        setCommentsError(response.error)
+      } else {
+        setComments(response.data?.comments || [])
+        setCommentsTotal(response.data?.total || 0)
+      }
+    } catch (err) {
+      setCommentsError('Failed to fetch comments')
+    } finally {
+      setCommentsLoading(false)
     }
   }
 
@@ -106,9 +143,29 @@ export default function IssueDetailPage({ params }: { params: { id: string } }) 
     switch (status) {
       case 'open': return 'bg-blue-100 text-blue-800'
       case 'in_progress': return 'bg-yellow-100 text-yellow-800'
-      case 'resolved': return 'bg-green-100 text-green-800'
       case 'closed': return 'bg-gray-100 text-gray-800'
       default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const onSubmitComment = async (data: { content: string }) => {
+    setCommentSubmitting(true)
+    setCommentsError('')
+    try {
+      const response = await apiClient.createComment({
+        content: data.content,
+        issue_id: params.id
+      })
+      if (response.error) {
+        setCommentsError(response.error)
+      } else {
+        resetCommentForm()
+        fetchComments()
+      }
+    } catch (err) {
+      setCommentsError('Failed to add comment')
+    } finally {
+      setCommentSubmitting(false)
     }
   }
 
@@ -249,12 +306,50 @@ export default function IssueDetailPage({ params }: { params: { id: string } }) 
               )}
             </div>
 
-            {/* Comments section - placeholder for now */}
-            <div className="card p-6 mt-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Comments</h2>
-              <div className="text-center py-8 text-gray-500">
-                <p>Comments feature coming soon!</p>
-              </div>
+            {/* Comments section */}
+            <div className="card p-6 mt-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Comments ({commentsTotal})</h2>
+              {commentsLoading ? (
+                <div className="text-center py-8 text-gray-500">Loading comments...</div>
+              ) : commentsError ? (
+                <div className="text-center py-8 text-red-500">{commentsError}</div>
+              ) : comments.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">No comments yet.</div>
+              ) : (
+                <>
+                  <div className="space-y-4">
+                    {comments.map((comment) => (
+                      <div key={comment.id} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm text-gray-700 font-medium">{comment.created_by}</span>
+                          <span className="text-xs text-gray-500">{new Date(comment.created_at).toLocaleString()}</span>
+                        </div>
+                        <p className="text-gray-800 whitespace-pre-line">{comment.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Pagination controls for comments */}
+                  <div className="flex justify-between items-center mt-6">
+                    <button
+                      onClick={() => setCommentsOffset(Math.max(0, commentsOffset - commentsLimit))}
+                      disabled={commentsOffset === 0}
+                      className="btn-secondary"
+                    >
+                      Previous
+                    </button>
+                    <span>
+                      Page {Math.floor(commentsOffset / commentsLimit) + 1} of {Math.max(1, Math.ceil(commentsTotal / commentsLimit))}
+                    </span>
+                    <button
+                      onClick={() => setCommentsOffset(commentsOffset + commentsLimit)}
+                      disabled={commentsOffset + commentsLimit >= commentsTotal}
+                      className="btn-secondary"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

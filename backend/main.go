@@ -64,7 +64,7 @@ func main() {
 				projects.POST("", createProjectHandler)
 				projects.GET("/:id", getProjectHandler)
 				projects.PUT("/:id", updateProjectHandler)
-				projects.DELETE("/:id", deleteProjectHandler)
+				projects.DELETE("/:id", adminOnly(), deleteProjectHandler)
 			}
 
 			// Issues
@@ -91,6 +91,8 @@ func main() {
 			{
 				users.GET("", getUsersHandler)
 				users.GET("/profile", getProfileHandler)
+				users.PUT("/profile", updateProfileHandler)
+				users.PUT("/:id/role", adminOnly(), updateUserRoleHandler)
 			}
 		}
 	}

@@ -26,6 +26,11 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [limit, setLimit] = useState(6)
+  const [offset, setOffset] = useState(0)
+  const [total, setTotal] = useState(0)
+  const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -41,11 +46,26 @@ export default function DashboardPage() {
     }
 
     fetchProjects(token)
-  }, [router])
+  }, [router, offset, limit, search])
+
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setOffset(0)
+      setSearch(searchInput)
+    }, 400)
+    return () => clearTimeout(handler)
+  }, [searchInput])
 
   const fetchProjects = async (token: string) => {
+    setIsLoading(true)
+    setError('')
     try {
-      const response = await fetch('http://localhost:8080/api/v1/projects', {
+      let url = `http://localhost:8080/api/v1/projects?limit=${limit}&offset=${offset}`
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`
+      }
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -61,6 +81,7 @@ export default function DashboardPage() {
       const data = await response.json()
       if (response.ok) {
         setProjects(data.projects || [])
+        setTotal(data.total || 0)
       } else {
         setError(data.error || 'Failed to fetch projects')
       }
@@ -98,6 +119,7 @@ export default function DashboardPage() {
               <span className="text-gray-700">
                 Welcome, {user?.first_name} {user?.last_name}
               </span>
+              <Link href="/profile" className="btn-secondary">Profile</Link>
               <button
                 onClick={handleLogout}
                 className="btn-secondary"
@@ -119,11 +141,30 @@ export default function DashboardPage() {
 
         {/* Quick actions */}
         <div className="mb-8">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold text-gray-900">Projects</h2>
             <Link href="/projects/new" className="btn-primary">
               Create New Project
             </Link>
+          </div>
+          {/* Search bar */}
+          <div className="flex items-center gap-2 mb-2">
+            <input
+              type="text"
+              placeholder="Search projects..."
+              className="input input-bordered w-full max-w-xs"
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+            />
+            {search && (
+              <button
+                className="btn btn-sm btn-ghost"
+                onClick={() => { setSearchInput(''); setSearch(''); }}
+                aria-label="Clear search"
+              >
+                ✕
+              </button>
+            )}
           </div>
         </div>
 
@@ -142,27 +183,49 @@ export default function DashboardPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project) => (
-              <div key={project.id} className="card p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {projects.map((project) => (
+                <div key={project.id} className="card p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
+                  </div>
+                  <p className="text-gray-600 mb-4 line-clamp-3">{project.description}</p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">
+                      Updated {new Date(project.updated_at).toLocaleDateString()}
+                    </span>
+                    <Link
+                      href={`/projects/${project.id}`}
+                      className="text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      View Project →
+                    </Link>
+                  </div>
                 </div>
-                <p className="text-gray-600 mb-4 line-clamp-3">{project.description}</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">
-                    Updated {new Date(project.updated_at).toLocaleDateString()}
-                  </span>
-                  <Link
-                    href={`/projects/${project.id}`}
-                    className="text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    View Project →
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+            {/* Pagination controls */}
+            <div className="flex justify-between items-center mt-8">
+              <button
+                onClick={() => setOffset(Math.max(0, offset - limit))}
+                disabled={offset === 0}
+                className="btn-secondary"
+              >
+                Previous
+              </button>
+              <span>
+                Page {Math.floor(offset / limit) + 1} of {Math.max(1, Math.ceil(total / limit))}
+              </span>
+              <button
+                onClick={() => setOffset(offset + limit)}
+                disabled={offset + limit >= total}
+                className="btn-secondary"
+              >
+                Next
+              </button>
+            </div>
+          </>
         )}
       </main>
     </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Fragment } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { apiClient } from '../../../lib/api'
@@ -30,11 +30,17 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
   const [issues, setIssues] = useState<Issue[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [limit, setLimit] = useState(6)
+  const [offset, setOffset] = useState(0)
+  const [total, setTotal] = useState(0)
+  const [statusFilter, setStatusFilter] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState('')
 
   useEffect(() => {
     fetchProject()
     fetchIssues()
-  }, [params.id])
+  }, [params.id, offset, limit, statusFilter, priorityFilter])
 
   const fetchProject = async () => {
     try {
@@ -52,12 +58,20 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
 
   const fetchIssues = async () => {
     try {
-      const response = await apiClient.getIssues(params.id)
-      
+      const filters: Record<string, string | number | undefined> = {}
+      if (statusFilter) filters.status = statusFilter
+      if (priorityFilter) filters.priority = priorityFilter
+      const response = await apiClient.getIssues(
+        params.id,
+        limit,
+        offset,
+        filters
+      )
       if (response.error) {
         console.error('Failed to fetch issues:', response.error)
       } else {
         setIssues(response.data?.issues || [])
+        setTotal(response.data?.total || 0)
       }
     } catch (err) {
       console.error('Failed to fetch issues:', err)
@@ -67,13 +81,9 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
   }
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
-      return
-    }
-
+    setShowDeleteModal(false)
     try {
       const response = await apiClient.deleteProject(params.id)
-      
       if (response.error) {
         setError(response.error)
       } else {
@@ -150,6 +160,29 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
+            <h2 className="text-lg font-bold mb-4">Delete Project</h2>
+            <p className="mb-6">Are you sure you want to delete this project? This action cannot be undone.</p>
+            <div className="flex justify-end space-x-2">
+              <button
+                className="btn-secondary"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
+                onClick={handleDelete}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -174,7 +207,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 Edit Project
               </Link>
               <button
-                onClick={handleDelete}
+                onClick={() => setShowDeleteModal(true)}
                 className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
               >
                 Delete Project
@@ -197,7 +230,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
             {/* Issues section */}
             <div className="card p-6 mt-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">Issues ({issues.length})</h2>
+                <h2 className="text-xl font-semibold text-gray-900">Issues ({total})</h2>
                 <Link
                   href={`/projects/${project.id}/issues/new`}
                   className="btn-primary"
@@ -205,44 +238,97 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                   Create Issue
                 </Link>
               </div>
+              {/* Filter controls */}
+              <div className="flex flex-wrap gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select
+                    value={statusFilter}
+                    onChange={e => { setStatusFilter(e.target.value); setOffset(0); }}
+                    className="input-field"
+                  >
+                    <option value="">All</option>
+                    <option value="open">Open</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                  <select
+                    value={priorityFilter}
+                    onChange={e => { setPriorityFilter(e.target.value); setOffset(0); }}
+                    className="input-field"
+                  >
+                    <option value="">All</option>
+                    <option value="critical">Critical</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+              </div>
               
               {issues.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <p>No issues yet. Create the first issue to get started!</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {issues.map((issue) => (
-                    <div key={issue.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-medium text-gray-900 mb-2">
-                            <Link 
-                              href={`/issues/${issue.id}`}
-                              className="hover:text-blue-600"
-                            >
-                              {issue.title}
-                            </Link>
-                          </h3>
-                          <p className="text-gray-600 text-sm line-clamp-2">
-                            {issue.description}
-                          </p>
+                <>
+                  <div className="space-y-4">
+                    {issues.map((issue) => (
+                      <div key={issue.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">
+                              <Link 
+                                href={`/issues/${issue.id}`}
+                                className="hover:text-blue-600"
+                              >
+                                {issue.title}
+                              </Link>
+                            </h3>
+                            <p className="text-gray-600 text-sm line-clamp-2">
+                              {issue.description}
+                            </p>
+                          </div>
+                          <div className="flex space-x-2 ml-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(issue.priority)}`}>
+                              {issue.priority}
+                            </span>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(issue.status)}`}>
+                              {issue.status.replace('_', ' ')}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex space-x-2 ml-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(issue.priority)}`}>
-                            {issue.priority}
-                          </span>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(issue.status)}`}>
-                            {issue.status.replace('_', ' ')}
-                          </span>
+                        <div className="mt-3 text-sm text-gray-500">
+                          Created {new Date(issue.created_at).toLocaleDateString()}
                         </div>
                       </div>
-                      <div className="mt-3 text-sm text-gray-500">
-                        Created {new Date(issue.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                  {/* Pagination controls for issues */}
+                  <div className="flex justify-between items-center mt-6">
+                    <button
+                      onClick={() => setOffset(Math.max(0, offset - limit))}
+                      disabled={offset === 0}
+                      className="btn-secondary"
+                    >
+                      Previous
+                    </button>
+                    <span>
+                      Page {Math.floor(offset / limit) + 1} of {Math.max(1, Math.ceil(total / limit))}
+                    </span>
+                    <button
+                      onClick={() => setOffset(offset + limit)}
+                      disabled={offset + limit >= total}
+                      className="btn-secondary"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>

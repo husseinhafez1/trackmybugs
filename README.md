@@ -1,88 +1,101 @@
-# TrackMyBugs 🐛
 
-A full-stack issue tracking system built with Next.js frontend, Go REST API, and PostgreSQL.
+# 🐛 TrackMyBugs — Full-Stack Issue Tracker for Modern Teams
 
-## 🎯 Project Overview
+**TrackMyBugs** is a production-grade, full-stack bug and issue tracking system built with **Go**, **Next.js**, **PostgreSQL**, and **Docker**. Designed for teams and individuals who value performance, security, and a clean, intuitive user experience.
 
-TrackMyBugs is a simple but powerful bug tracking application that helps teams manage and track issues efficiently. Built with modern technologies and best practices.
+---
+
+## 🚀 Why TrackMyBugs?
+
+✅ **Robust Architecture** — Clean separation of concerns with dedicated backend, frontend, and database services.  
+✅ **Scalable & Secure** — Go-powered REST API with JWT authentication, RBAC, and PostgreSQL at the core.  
+✅ **Real-World Functionality** — Issue tracking, project management, advanced filtering, and search.  
+✅ **Developer-Focused** — Built with modern tools, Dockerized for easy deployment, designed for extensibility.  
+
+---
 
 ## 🏗️ Tech Stack
 
-- **Frontend**: Next.js 14 (React)
-- **Backend**: Go (Gin framework)
-- **Database**: PostgreSQL
-- **Authentication**: JWT
-- **Styling**: Tailwind CSS
-- **Deployment**: Docker Compose for local development
+| Layer             | Technology                          |
+|-------------------|-------------------------------------|
+| **Frontend**      | Next.js 14 (React), Tailwind CSS    |
+| **Backend**       | Go (Gin Framework), JWT Auth, RBAC |
+| **Database**      | PostgreSQL                         |
+| **Infrastructure**| Docker, Docker Compose             |
+
+---
+
+## ✨ Core Features
+
+- **User Authentication:** Secure JWT-based sessions (login/register)  
+- **Role-Based Access Control:** Admin/user roles, admin-only management actions  
+- **Project Management:** Create, edit, delete, and search projects  
+- **Issue Tracking:** Full CRUD for issues with assignment, filtering, and prioritization  
+- **Comment System:** Discuss issues with threaded comments, edit/delete support  
+- **Advanced Filtering & Search:** Filter issues by status, priority, assignee, and more  
+- **Pagination:** Optimized queries for large datasets (projects, issues, comments)  
+- **Responsive UI:** Clean, accessible design with Tailwind CSS  
+- **Containerized Deployment:** Docker-powered setup for consistent environments
+
+---
+
+## ⚡ Quick Start
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) 18+  
+- [Go](https://golang.org/) 1.21+  
+- [Docker](https://www.docker.com/) & Docker Compose  
+
+---
+
+### Run with Docker (Recommended)
+
+```bash
+git clone https://github.com/yourusername/trackmybugs.git
+cd trackmybugs
+docker-compose up --build
+```
+-   Frontend: [http://localhost:3000](http://localhost:3000/)
+    
+-   Backend API: [http://localhost:8080](http://localhost:8080/)
+    
+-   Database: `localhost:5432`
+    
+
+----------
+
+### Manual Setup
+
+1.  **Database**  
+    Run the SQL in `db/init.sql` on your PostgreSQL instance.
+    
+2.  **Backend**
+    
+    ```bash
+    cd backend
+    go run .
+    ```
+    
+3.  **Frontend**
+    
+    ```bash
+    cd frontend
+    npm install
+    npm run dev
+    ```
+    
+
+----------
 
 ## 📁 Project Structure
 
 ```
 trackmybugs/
-├── frontend/          # Next.js application
-├── backend/           # Go REST API
-├── db/               # Database scripts and migrations
-├── docker-compose.yml # Local development setup
-└── README.md         # This file
+├── frontend/         # Next.js frontend
+├── backend/          # Go REST API
+├── db/               # SQL schema and migrations
+├── docker-compose.yml
+└── README.md
+
 ```
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- Go 1.21+
-- Docker & Docker Compose
-- PostgreSQL (or use Docker)
-
-### Quick Start
-
-1. Clone the repository
-2. Run `docker-compose up` for local development
-3. Access the application at `http://localhost:3000`
-
-## 📋 Development Roadmap
-
-### Phase 1 - Setup ✅
-- [x] Project structure
-- [x] Docker Compose configuration
-- [x] Basic README
-
-### Phase 2 - Database & Backend
-- [x] Database schema design
-- [x] Go API setup with Gin
-- [x] Basic CRUD operations
-- [x] JWT authentication
-- [ ] Role-based permissions
-
-### Phase 3 - Frontend
-- [ ] Next.js project setup
-- [ ] Authentication pages
-- [ ] Dashboard and project views
-- [ ] Issue management interface
-
-### Phase 4 - Core Features
-- [ ] Issue status transitions
-- [ ] Comment system
-- [ ] User assignment
-- [ ] Filtering and sorting
-
-### Phase 5 - Polish & Extras
-- [ ] UI improvements
-- [ ] Error handling
-- [ ] Pagination
-- [ ] Deployment setup
-
-### Phase 6 - Bonus Features
-- [ ] Real-time updates
-- [ ] Activity logging
-- [ ] Testing suite
-- [ ] CI/CD pipeline
-
-## 🤝 Contributing
-
-This is a learning project. Feel free to explore the code and learn from it!
-
-## 📄 License
-
-MIT License - feel free to use this code for your own projects. 

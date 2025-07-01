@@ -95,9 +95,20 @@ class ApiClient {
   }
 
   // Issue endpoints
-  async getIssues(projectId?: string) {
-    const endpoint = projectId ? `/issues?project_id=${projectId}` : '/issues'
-    return this.request<{ issues: any[] }>(endpoint)
+  async getIssues(projectId?: string, limit?: number, offset?: number, filters?: Record<string, string | number | undefined>) {
+    let endpoint = projectId ? `/issues?project_id=${projectId}` : '/issues';
+    const params = [];
+    if (typeof limit === 'number') params.push(`limit=${limit}`);
+    if (typeof offset === 'number') params.push(`offset=${offset}`);
+    if (filters) {
+      for (const [key, value] of Object.entries(filters)) {
+        if (value !== undefined && value !== '') params.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
+      }
+    }
+    if (params.length > 0) {
+      endpoint += (endpoint.includes('?') ? '&' : '?') + params.join('&');
+    }
+    return this.request<{ issues: any[]; total: number; limit: number; offset: number }>(endpoint)
   }
 
   async createIssue(issueData: {
@@ -131,14 +142,33 @@ class ApiClient {
   }
 
   // Comment endpoints
-  async getComments(issueId: string) {
-    return this.request<{ comments: any[] }>(`/comments/issue/${issueId}`)
+  async getComments(issueId: string, limit?: number, offset?: number) {
+    let endpoint = `/comments/issue/${issueId}`;
+    const params = [];
+    if (typeof limit === 'number') params.push(`limit=${limit}`);
+    if (typeof offset === 'number') params.push(`offset=${offset}`);
+    if (params.length > 0) {
+      endpoint += (endpoint.includes('?') ? '&' : '?') + params.join('&');
+    }
+    return this.request<{ comments: any[]; total: number; limit: number; offset: number }>(endpoint)
   }
 
   async createComment(commentData: { content: string; issue_id: string }) {
     return this.request('/comments', {
       method: 'POST',
       body: JSON.stringify(commentData),
+    })
+  }
+
+  // User endpoints
+  async getProfile() {
+    return this.request('/users/profile')
+  }
+
+  async updateProfile(profileData: { first_name: string; last_name: string; email: string }) {
+    return this.request('/users/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
     })
   }
 }
