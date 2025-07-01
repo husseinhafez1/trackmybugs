@@ -1,7 +1,7 @@
 
-# TrackMyBugs — Full-Stack Issue Tracker for Modern Teams
+# trackmybugs
 
-**TrackMyBugs** is a production-grade, full-stack bug and issue tracking system built with **Go**, **Next.js**, **PostgreSQL**, and **Docker**. Designed for teams and individuals who value performance, security, and a clean, intuitive user experience.
+**trackmybugs** is a production-grade, full-stack bug and issue tracking system built with **Go**, **Next.js**, **PostgreSQL**, and **Docker**. Designed for teams and individuals who value performance, security, and a clean, intuitive user experience.
 
 ---
 
