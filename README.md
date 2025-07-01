@@ -5,7 +5,7 @@
 
 ---
 
-## Why TrackMyBugs?
+## Why trackmybugs?
 
 ✅ **Robust Architecture** — Clean separation of concerns with dedicated backend, frontend, and database services.  
 ✅ **Scalable & Secure** — Go-powered REST API with JWT authentication, RBAC, and PostgreSQL at the core.  
